@@ -45,6 +45,14 @@ class scoped_session(object):
         """
         self.session_factory = session_factory
 
+        def instrument(name):
+            def do(self, *args, **kwargs):
+                return getattr(self.registry(), name)(*args, **kwargs)
+            return do
+
+        for meth in session_factory.class_.public_methods:
+            setattr(scoped_session, meth, instrument(meth))
+
         if scopefunc:
             self.registry = ScopedRegistry(session_factory, scopefunc)
         else:
@@ -146,15 +154,6 @@ class scoped_session(object):
 
 ScopedSession = scoped_session
 """Old name for backwards compatibility."""
-
-
-def instrument(name):
-    def do(self, *args, **kwargs):
-        return getattr(self.registry(), name)(*args, **kwargs)
-    return do
-
-for meth in Session.public_methods:
-    setattr(scoped_session, meth, instrument(meth))
 
 
 def makeprop(name):
